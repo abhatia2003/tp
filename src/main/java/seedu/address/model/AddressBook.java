@@ -2,10 +2,12 @@ package seedu.address.model;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javafx.collections.ObservableList;
 import seedu.address.commons.util.ToStringBuilder;
+import seedu.address.model.attendance.AttendanceList;
 import seedu.address.model.lesson.Lesson;
 import seedu.address.model.lesson.LessonList;
 import seedu.address.model.person.Person;
@@ -85,16 +87,7 @@ public class AddressBook implements ReadOnlyAddressBook {
      * The person must not already exist in the address book.
      */
     public void addPerson(Person p) {
-        persons.add(p);
-        if (p instanceof Student) {
-            Student s = (Student) p;
-            List<Subject> subjects = s.getSubjects();
-            for (int i = 0; i < subjects.size(); i++) {
-                if (!subjectList.contains(subjects.get(i))) {
-                    subjectList.addSubject(new Subject(subjects.get(i).getName()));
-                }
-            }
-        }
+        persons.add(p instanceof Student ? replaceStudentWithSharedSubjects((Student) p) : p);
     }
 
     /**
@@ -104,7 +97,43 @@ public class AddressBook implements ReadOnlyAddressBook {
      */
     public void setPerson(Person target, Person editedPerson) {
         requireNonNull(editedPerson);
-        persons.setPerson(target, editedPerson);
+        persons.setPerson(target, editedPerson instanceof Student
+                ? replaceStudentWithSharedSubjects((Student) editedPerson) : editedPerson);
+    }
+
+    /**
+     * Replaces a student's subjects with shared references from SubjectList.
+     * This ensures that all students reference the same Subject objects, allowing
+     * changes to Subject's LessonList to be reflected across all students.
+     */
+    private Student replaceStudentWithSharedSubjects(Student student) {
+        List<Subject> sharedSubjects = new ArrayList<>();
+        for (Subject studentSubject : student.getSubjects()) {
+            Subject sharedSubject = subjectList.getOrCreateSubject(studentSubject.getName());
+            syncLessonsToSharedSubject(studentSubject, sharedSubject);
+            sharedSubjects.add(sharedSubject);
+        }
+        Student newStudent = new Student(student.getName(), sharedSubjects,
+                student.getStudentClass(), student.getEmergencyContact(),
+                student.getPaymentStatus(), student.getAssignmentStatus());
+        copyAttendance(student.getAttendanceList(), newStudent.getAttendanceList());
+        return newStudent;
+    }
+
+    private void syncLessonsToSharedSubject(Subject studentSubject, Subject sharedSubject) {
+        for (Lesson lesson : studentSubject.getLessons().getInternalList()) {
+            if (!sharedSubject.containsLesson(lesson)) {
+                sharedSubject.addLesson(lesson);
+            }
+            if (!lessonList.contains(lesson)) {
+                lessonList.addLesson(lesson);
+            }
+        }
+    }
+
+    private void copyAttendance(AttendanceList from, AttendanceList to) {
+        from.getStudentAttendance().forEach(record ->
+                to.markAttendance(record.getLesson(), record.getStatus()));
     }
 
     /**
@@ -114,7 +143,8 @@ public class AddressBook implements ReadOnlyAddressBook {
      */
     public void setArchivedPerson(Person target, Person editedPerson) {
         requireNonNull(editedPerson);
-        archivedPersons.setPerson(target, editedPerson);
+        archivedPersons.setPerson(target, editedPerson instanceof Student
+                ? replaceStudentWithSharedSubjects((Student) editedPerson) : editedPerson);
     }
 
     /**
@@ -134,7 +164,6 @@ public class AddressBook implements ReadOnlyAddressBook {
         requireNonNull(key);
         archivedPersons.remove(key);
     }
-
 
     /**
      * Archives {@code key} from this {@code AddressBook}.
@@ -179,15 +208,13 @@ public class AddressBook implements ReadOnlyAddressBook {
      * Used during loading from storage.
      */
     public void addArchivedPerson(Person p) {
-        archivedPersons.add(p);
+        archivedPersons.add(p instanceof Student ? replaceStudentWithSharedSubjects((Student) p) : p);
     }
 
     //// lesson-level operations
 
     /**
      * Returns true if a lesson with the same identity as {@code lesson} exists in the address book.
-     * @param lesson
-     * @return
      */
     public boolean hasLesson(Lesson lesson) {
         requireNonNull(lesson);
@@ -200,7 +227,29 @@ public class AddressBook implements ReadOnlyAddressBook {
      */
     public void addLesson(Lesson lesson) {
         requireNonNull(lesson);
-        lessonList.addLesson(lesson);
+        if (!lessonList.contains(lesson)) {
+            lessonList.addLesson(lesson);
+        }
+        Subject subject = subjectList.getOrCreateSubject(lesson.getSubject());
+        if (!subject.containsLesson(lesson)) {
+            subject.addLesson(lesson);
+        }
+        addLessonToStudentsForSubject(lesson, subject);
+    }
+
+    private void addLessonToStudentsForSubject(Lesson lesson, Subject subject) {
+        requireNonNull(lesson);
+        requireNonNull(subject);
+        String subjectName = subject.getName();
+        List<Person> allPersons = new ArrayList<>();
+        allPersons.addAll(persons.asUnmodifiableObservableList());
+        allPersons.addAll(archivedPersons.asUnmodifiableObservableList());
+        allPersons.stream()
+                .filter(p -> p instanceof Student)
+                .map(p -> (Student) p)
+                .filter(s -> s.getSubjects().stream().anyMatch(sub -> sub.getName().equalsIgnoreCase(subjectName)))
+                .forEach(s -> s.getAttendanceList().markAttendance(lesson,
+                        seedu.address.model.attendance.AttendanceStatus.ABSENT));
     }
 
     /**
@@ -210,6 +259,9 @@ public class AddressBook implements ReadOnlyAddressBook {
     public void deleteLesson(Lesson lesson) {
         requireNonNull(lesson);
         lessonList.deleteLesson(lesson);
+        subjectList.getSubject(lesson.getSubject())
+                .filter(subject -> subject.containsLesson(lesson))
+                .ifPresent(subject -> subject.removeLesson(lesson));
     }
 
     /**
