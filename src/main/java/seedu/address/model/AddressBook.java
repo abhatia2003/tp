@@ -248,7 +248,8 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     /**
-     * Deletes the given lesson from the address book. The lesson must exist in the address book.
+     * Deletes the given lesson from the address book. 
+     * The lesson must exist in the address book.
      */
     public void deleteLesson(Lesson lesson) {
         requireNonNull(lesson);
