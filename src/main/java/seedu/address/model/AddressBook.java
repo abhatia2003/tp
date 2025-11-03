@@ -4,9 +4,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import javafx.collections.ObservableList;
 import seedu.address.commons.util.ToStringBuilder;
+import seedu.address.model.attendance.AttendanceList;
+import seedu.address.model.attendance.AttendanceStatus;
 import seedu.address.model.lesson.Lesson;
 import seedu.address.model.lesson.LessonList;
 import seedu.address.model.person.Person;
@@ -27,11 +30,14 @@ public class AddressBook implements ReadOnlyAddressBook {
     private final SubjectList subjectList;
 
     /*
-     * The 'unusual' code block below is a non-static initialization block, sometimes used to avoid duplication
-     * between constructors. See https://docs.oracle.com/javase/tutorial/java/javaOO/initial.html
+     * The 'unusual' code block below is a non-static initialization block,
+     * sometimes used to avoid duplication
+     * between constructors. See
+     * https://docs.oracle.com/javase/tutorial/java/javaOO/initial.html
      *
-     * Note that non-static init blocks are not recommended to use. There are other ways to avoid duplication
-     *   among constructors.
+     * Note that non-static init blocks are not recommended to use. There are other
+     * ways to avoid duplication
+     * among constructors.
      */
     {
         persons = new UniquePersonList();
@@ -40,7 +46,8 @@ public class AddressBook implements ReadOnlyAddressBook {
         subjectList = new SubjectList();
     }
 
-    public AddressBook() {}
+    public AddressBook() {
+    }
 
     /**
      * Creates an AddressBook using the Persons in the {@code toBeCopied}
@@ -74,7 +81,8 @@ public class AddressBook implements ReadOnlyAddressBook {
     //// person-level operations
 
     /**
-     * Returns true if a person with the same identity as {@code person} exists in the address book.
+     * Returns true if a person with the same identity as {@code person} exists in
+     * the address book.
      */
     public boolean hasPerson(Person person) {
         requireNonNull(person);
@@ -91,35 +99,69 @@ public class AddressBook implements ReadOnlyAddressBook {
      * The person must not already exist in the address book.
      */
     public void addPerson(Person p) {
-        persons.add(p);
-        if (p instanceof Student) {
-            Student s = (Student) p;
-            List<Subject> resolved = new ArrayList<>();
-            for (Subject sub : s.getSubjects()) {
-                resolved.add(getOrCreateSubject(sub.getName()));
-            }
-            s.setSubjects(resolved);
-        }
+        persons.add(p instanceof Student ? replaceStudentWithSharedSubjects((Student) p) : p);
     }
 
     /**
-     * Replaces the given person {@code target} in the current list with {@code editedPerson}.
+     * Replaces the given person {@code target} in the current list with
+     * {@code editedPerson}.
      * {@code target} must exist in the current list.
-     * The person identity of {@code editedPerson} must not be the same as another existing person in the current list.
+     * The person identity of {@code editedPerson} must not be the same as another
+     * existing person in the current list.
      */
     public void setPerson(Person target, Person editedPerson) {
         requireNonNull(editedPerson);
-        persons.setPerson(target, editedPerson);
+        persons.setPerson(target, editedPerson instanceof Student
+                ? replaceStudentWithSharedSubjects((Student) editedPerson)
+                : editedPerson);
     }
 
     /**
-     * Replaces the given person {@code target} in the archived list with {@code editedPerson}.
+     * Replaces a student's subjects with shared references from SubjectList.
+     * This ensures that all students reference the same Subject objects, allowing
+     * changes to Subject's LessonList to be reflected across all students.
+     */
+    private Student replaceStudentWithSharedSubjects(Student student) {
+        List<Subject> sharedSubjects = new ArrayList<>();
+        for (Subject studentSubject : student.getSubjects()) {
+            Subject sharedSubject = subjectList.getOrCreateSubject(studentSubject.getName());
+            syncLessonsToSharedSubject(studentSubject, sharedSubject);
+            sharedSubjects.add(sharedSubject);
+        }
+        Student newStudent = new Student(student.getName(), sharedSubjects,
+                student.getStudentClass(), student.getEmergencyContact(),
+                student.getPaymentStatus(), student.getAssignmentStatus());
+        copyAttendance(student.getAttendanceList(), newStudent.getAttendanceList());
+        return newStudent;
+    }
+
+    private void syncLessonsToSharedSubject(Subject studentSubject, Subject sharedSubject) {
+        for (Lesson lesson : studentSubject.getLessons().getInternalList()) {
+            if (!sharedSubject.containsLesson(lesson)) {
+                sharedSubject.addLesson(lesson);
+            }
+            if (!lessonList.contains(lesson)) {
+                lessonList.addLesson(lesson);
+            }
+        }
+    }
+
+    private void copyAttendance(AttendanceList from, AttendanceList to) {
+        from.getStudentAttendance().forEach(record -> to.markAttendance(record.getLesson(), record.getStatus()));
+    }
+
+    /**
+     * Replaces the given person {@code target} in the archived list with
+     * {@code editedPerson}.
      * {@code target} must exist in the archived list.
-     * The person identity of {@code editedPerson} must not be the same as another existing person in the archived list.
+     * The person identity of {@code editedPerson} must not be the same as another
+     * existing person in the archived list.
      */
     public void setArchivedPerson(Person target, Person editedPerson) {
         requireNonNull(editedPerson);
-        archivedPersons.setPerson(target, editedPerson);
+        archivedPersons.setPerson(target, editedPerson instanceof Student
+                ? replaceStudentWithSharedSubjects((Student) editedPerson)
+                : editedPerson);
     }
 
     /**
@@ -140,7 +182,6 @@ public class AddressBook implements ReadOnlyAddressBook {
         archivedPersons.remove(key);
     }
 
-
     /**
      * Archives {@code key} from this {@code AddressBook}.
      * {@code key} must exist in the address book.
@@ -152,6 +193,7 @@ public class AddressBook implements ReadOnlyAddressBook {
 
     /**
      * Sets list of archived persons to param
+     *
      * @param archivedPersons list of archived persons
      */
     public void setArchivedPersons(List<Person> archivedPersons) {
@@ -172,7 +214,8 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     /**
-     * Returns true if an archived person with the same identity as {@code person} exists in the address book.
+     * Returns true if an archived person with the same identity as {@code person}
+     * exists in the address book.
      */
     public boolean hasArchivedPerson(Person person) {
         requireNonNull(person);
@@ -184,15 +227,13 @@ public class AddressBook implements ReadOnlyAddressBook {
      * Used during loading from storage.
      */
     public void addArchivedPerson(Person p) {
-        archivedPersons.add(p);
+        archivedPersons.add(p instanceof Student ? replaceStudentWithSharedSubjects((Student) p) : p);
     }
 
     //// lesson-level operations
 
     /**
      * Returns true if a lesson with the same identity as {@code lesson} exists in the address book.
-     * @param lesson
-     * @return
      */
     public boolean hasLesson(Lesson lesson) {
         requireNonNull(lesson);
@@ -205,16 +246,58 @@ public class AddressBook implements ReadOnlyAddressBook {
      */
     public void addLesson(Lesson lesson) {
         requireNonNull(lesson);
-        lessonList.addLesson(lesson);
+        if (!lessonList.contains(lesson)) {
+            lessonList.addLesson(lesson);
+        }
+        Subject subject = subjectList.getOrCreateSubject(lesson.getSubject());
+        if (!subject.containsLesson(lesson)) {
+            subject.addLesson(lesson);
+        }
+        addLessonToStudentsForSubject(lesson, subject);
     }
 
     /**
-     * Deletes the given lesson from the address book.
+     * Propagate a new lesson to all students who take the given subject.
+     */
+    private void addLessonToStudentsForSubject(Lesson lesson, Subject subject) {
+        requireNonNull(lesson);
+        requireNonNull(subject);
+        final String subjectName = subject.getName();
+        streamAllStudents()
+                .filter(s -> s.getSubjects().stream()
+                        .anyMatch(sub -> sub.getName().equalsIgnoreCase(subjectName)))
+                .forEach(s -> s.getAttendanceList().markAttendance(lesson, AttendanceStatus.ABSENT));
+    }
+
+    /**
+     * Deletes the given lesson from the address book, its subject, and all students' attendance lists.
      * The lesson must exist in the address book.
      */
     public void deleteLesson(Lesson lesson) {
         requireNonNull(lesson);
-        lessonList.deleteLesson(lesson);
+        if (lessonList.contains(lesson)) {
+            lessonList.deleteLesson(lesson);
+        }
+        subjectList.getSubject(lesson.getSubject())
+                .ifPresent(subject -> {
+                    if (subject.containsLesson(lesson)) {
+                        subject.removeLesson(lesson);
+                    }
+                });
+        removeLessonFromAllStudents(lesson);
+    }
+
+    private void removeLessonFromAllStudents(Lesson l) {
+        requireNonNull(l);
+        streamAllStudents().forEach(s -> s.getSubjects().stream()
+                .filter(sb -> sb.getName().equalsIgnoreCase(l.getSubject()))
+                .filter(sb -> sb.containsLesson(l)).forEach(sb -> sb.removeLesson(l)));
+    }
+
+    private Stream<Student> streamAllStudents() {
+        return Stream.concat(persons.asUnmodifiableObservableList().stream(),
+                archivedPersons.asUnmodifiableObservableList().stream()).filter(p -> p instanceof Student)
+                .map(p -> (Student) p);
     }
 
     /**

@@ -99,6 +99,39 @@ public class SubjectList {
     }
 
     /**
+     * Gets an existing subject by name, or creates and adds it if it doesn't exist.
+     *
+     * @param subjectName the name of the subject
+     * @return the Subject object (existing or newly created)
+     */
+    public Subject getOrCreateSubject(String subjectName) {
+        Objects.requireNonNull(subjectName, "subjectName");
+        String trimmedName = subjectName.trim();
+        for (Subject subject : subjects) {
+            if (subject.getName().equalsIgnoreCase(trimmedName)) {
+                return subject;
+            }
+        }
+        Subject newSubject = new Subject(trimmedName);
+        subjects.add(newSubject);
+        return newSubject;
+    }
+
+    /**
+     * Gets an existing subject by name.
+     *
+     * @param subjectName the name of the subject
+     * @return Optional containing the Subject if found, empty otherwise
+     */
+    public java.util.Optional<Subject> getSubject(String subjectName) {
+        Objects.requireNonNull(subjectName, "subjectName");
+        String trimmedName = subjectName.trim();
+        return subjects.stream()
+                .filter(subject -> subject.getName().equalsIgnoreCase(trimmedName))
+                .findFirst();
+    }
+
+    /**
      * Returns the {@code Subject} in this list whose name matches the given {@code name},
      * ignoring case. Returns {@code null} if no such subject exists.
      */
