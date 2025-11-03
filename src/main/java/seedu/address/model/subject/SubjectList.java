@@ -100,9 +100,6 @@ public class SubjectList {
 
     /**
      * Gets an existing subject by name, or creates and adds it if it doesn't exist.
-     *
-     * @param subjectName the name of the subject
-     * @return the Subject object (existing or newly created)
      */
     public Subject getOrCreateSubject(String subjectName) {
         Objects.requireNonNull(subjectName, "subjectName");
@@ -119,9 +116,6 @@ public class SubjectList {
 
     /**
      * Gets an existing subject by name.
-     *
-     * @param subjectName the name of the subject
-     * @return Optional containing the Subject if found, empty otherwise
      */
     public java.util.Optional<Subject> getSubject(String subjectName) {
         Objects.requireNonNull(subjectName, "subjectName");

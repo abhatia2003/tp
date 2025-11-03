@@ -131,8 +131,6 @@ public class Student extends Person {
 
     /**
      * Returns all lessons from all subjects this student is enrolled in.
-     *
-     * @return List of all lessons across all subjects the student takes
      */
     public List<Lesson> getAllLessons() {
         assert subjects != null : "Subjects list is null";

@@ -34,7 +34,7 @@ public class AddressBook implements ReadOnlyAddressBook {
      * between constructors. See https://docs.oracle.com/javase/tutorial/java/javaOO/initial.html
      *
      * Note that non-static init blocks are not recommended to use. There are other ways to avoid duplication
-     * among constructors.
+     *   among constructors.
      */
     {
         persons = new UniquePersonList();
@@ -98,11 +98,9 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     /**
-     * Replaces the given person {@code target} in the current list with
-     * {@code editedPerson}.
+     * Replaces the given person {@code target} in the current list with {@code editedPerson}.
      * {@code target} must exist in the current list.
-     * The person identity of {@code editedPerson} must not be the same as another
-     * existing person in the current list.
+     * The person identity of {@code editedPerson} must not be the same as another existing person in the current list.
      */
     public void setPerson(Person target, Person editedPerson) {
         requireNonNull(editedPerson);
@@ -111,10 +109,6 @@ public class AddressBook implements ReadOnlyAddressBook {
                 : editedPerson);
     }
 
-    /**
-     * Replaces a student's subjects with shared references from SubjectList. This ensures that all students reference
-     * the same Subject objects, allowing changes to Subject's LessonList to be reflected across all students.
-     */
     private Student replaceStudentWithSharedSubjects(Student student) {
         List<Subject> sharedSubjects = new ArrayList<>();
         for (Subject studentSubject : student.getSubjects()) {
@@ -244,9 +238,6 @@ public class AddressBook implements ReadOnlyAddressBook {
         addLessonToStudentsForSubject(lesson, subject);
     }
 
-    /**
-     * Propagate a new lesson to all students who take the given subject.
-     */
     private void addLessonToStudentsForSubject(Lesson lesson, Subject subject) {
         requireNonNull(lesson);
         requireNonNull(subject);
@@ -257,8 +248,7 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     /**
-     * Deletes the given lesson from the address book, its subject, and all students' attendance lists.
-     * The lesson must exist in the address book.
+     * Deletes the given lesson from the address book. The lesson must exist in the address book.
      */
     public void deleteLesson(Lesson lesson) {
         requireNonNull(lesson);
