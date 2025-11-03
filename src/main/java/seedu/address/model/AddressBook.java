@@ -30,13 +30,10 @@ public class AddressBook implements ReadOnlyAddressBook {
     private final SubjectList subjectList;
 
     /*
-     * The 'unusual' code block below is a non-static initialization block,
-     * sometimes used to avoid duplication
-     * between constructors. See
-     * https://docs.oracle.com/javase/tutorial/java/javaOO/initial.html
+     * The 'unusual' code block below is a non-static initialization block, sometimes used to avoid duplication
+     * between constructors. See https://docs.oracle.com/javase/tutorial/java/javaOO/initial.html
      *
-     * Note that non-static init blocks are not recommended to use. There are other
-     * ways to avoid duplication
+     * Note that non-static init blocks are not recommended to use. There are other ways to avoid duplication
      * among constructors.
      */
     {
@@ -46,8 +43,7 @@ public class AddressBook implements ReadOnlyAddressBook {
         subjectList = new SubjectList();
     }
 
-    public AddressBook() {
-    }
+    public AddressBook() {}
 
     /**
      * Creates an AddressBook using the Persons in the {@code toBeCopied}
@@ -81,8 +77,7 @@ public class AddressBook implements ReadOnlyAddressBook {
     //// person-level operations
 
     /**
-     * Returns true if a person with the same identity as {@code person} exists in
-     * the address book.
+     * Returns true if a person with the same identity as {@code person} exists in the address book.
      */
     public boolean hasPerson(Person person) {
         requireNonNull(person);
@@ -117,9 +112,8 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     /**
-     * Replaces a student's subjects with shared references from SubjectList.
-     * This ensures that all students reference the same Subject objects, allowing
-     * changes to Subject's LessonList to be reflected across all students.
+     * Replaces a student's subjects with shared references from SubjectList. This ensures that all students reference
+     * the same Subject objects, allowing changes to Subject's LessonList to be reflected across all students.
      */
     private Student replaceStudentWithSharedSubjects(Student student) {
         List<Subject> sharedSubjects = new ArrayList<>();
@@ -128,9 +122,8 @@ public class AddressBook implements ReadOnlyAddressBook {
             syncLessonsToSharedSubject(studentSubject, sharedSubject);
             sharedSubjects.add(sharedSubject);
         }
-        Student newStudent = new Student(student.getName(), sharedSubjects,
-                student.getStudentClass(), student.getEmergencyContact(),
-                student.getPaymentStatus(), student.getAssignmentStatus());
+        Student newStudent = new Student(student.getName(), sharedSubjects, student.getStudentClass(),
+            student.getEmergencyContact(), student.getPaymentStatus(), student.getAssignmentStatus());
         copyAttendance(student.getAttendanceList(), newStudent.getAttendanceList());
         return newStudent;
     }
@@ -151,17 +144,14 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     /**
-     * Replaces the given person {@code target} in the archived list with
-     * {@code editedPerson}.
+     * Replaces the given person {@code target} in the archived list with {@code editedPerson}.
      * {@code target} must exist in the archived list.
-     * The person identity of {@code editedPerson} must not be the same as another
-     * existing person in the archived list.
+     * The person identity of {@code editedPerson} must not be the same as another existing person in the archived list.
      */
     public void setArchivedPerson(Person target, Person editedPerson) {
         requireNonNull(editedPerson);
         archivedPersons.setPerson(target, editedPerson instanceof Student
-                ? replaceStudentWithSharedSubjects((Student) editedPerson)
-                : editedPerson);
+            ? replaceStudentWithSharedSubjects((Student) editedPerson) : editedPerson);
     }
 
     /**
@@ -193,7 +183,6 @@ public class AddressBook implements ReadOnlyAddressBook {
 
     /**
      * Sets list of archived persons to param
-     *
      * @param archivedPersons list of archived persons
      */
     public void setArchivedPersons(List<Person> archivedPersons) {
@@ -214,8 +203,7 @@ public class AddressBook implements ReadOnlyAddressBook {
     }
 
     /**
-     * Returns true if an archived person with the same identity as {@code person}
-     * exists in the address book.
+     * Returns true if an archived person with the same identity as {@code person} exists in the address book.
      */
     public boolean hasArchivedPerson(Person person) {
         requireNonNull(person);
@@ -263,9 +251,8 @@ public class AddressBook implements ReadOnlyAddressBook {
         requireNonNull(lesson);
         requireNonNull(subject);
         final String subjectName = subject.getName();
-        streamAllStudents()
-                .filter(s -> s.getSubjects().stream()
-                        .anyMatch(sub -> sub.getName().equalsIgnoreCase(subjectName)))
+        streamAllStudents().filter(s -> s.getSubjects().stream()
+                .anyMatch(sub -> sub.getName().equalsIgnoreCase(subjectName)))
                 .forEach(s -> s.getAttendanceList().markAttendance(lesson, AttendanceStatus.ABSENT));
     }
 

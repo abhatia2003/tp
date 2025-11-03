@@ -127,8 +127,7 @@ public class SubjectList {
         Objects.requireNonNull(subjectName, "subjectName");
         String trimmedName = subjectName.trim();
         return subjects.stream()
-                .filter(subject -> subject.getName().equalsIgnoreCase(trimmedName))
-                .findFirst();
+                .filter(subject -> subject.getName().equalsIgnoreCase(trimmedName)).findFirst();
     }
 
     /**
